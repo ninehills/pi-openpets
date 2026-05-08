@@ -1,0 +1,26 @@
+{
+  "name": "pi-openpets",
+  "version": "0.1.0",
+  "description": "Pi extension that mirrors agent activity to the local OpenPets desktop pet.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["pi-package", "pi-extension", "openpets"],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "dependencies": {
+    "@open-pets/client": "0.1.1",
+    "@open-pets/core": "0.1.1"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@types/bun": "latest",
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
