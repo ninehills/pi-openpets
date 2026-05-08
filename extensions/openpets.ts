@@ -184,6 +184,10 @@ async function acquireLease(rt: Runtime) {
 
 function safeSend(rt: Runtime | undefined, state: OpenPetsState, message: string | undefined, type: string, tool?: string) {
   if (!rt) return;
+  if (state !== "idle" && rt.idleTimer) {
+    clearTimeout(rt.idleTimer);
+    rt.idleTimer = undefined;
+  }
   const safeMessage = message ? sanitizeSpeech(message) : undefined;
   const key = `${state}|${type}|${tool ?? ""}|${safeMessage ?? ""}`;
   if (rt.lastKey === key && Date.now() - rt.lastSentAt < 1500) return;
