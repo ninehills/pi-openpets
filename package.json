@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@open-pets/client": "0.1.1",
-    "@open-pets/core": "0.1.1"
+    "@open-pets/core": "0.1.1",
+    "@open-pets/installer": "0.1.1"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

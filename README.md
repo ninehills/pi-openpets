@@ -44,10 +44,16 @@ Tool arguments, tool output, model output, prompts, file contents, and command o
 After loading the extension, Pi provides:
 
 ```text
+/openpets install <zip-url|local-zip|pet-folder>
+/openpets show
+/openpets hide
 /openpets status
 /openpets test
 ```
 
+- `/openpets install <zip-url|local-zip|pet-folder>` installs a Codex/Petdex pet and activates it when the running OpenPets app supports live pet selection.
+- `/openpets show` shows the OpenPets window.
+- `/openpets hide` hides the OpenPets window.
 - `/openpets status` checks the local OpenPets connection.
 - `/openpets test` sends a waving test event.
 

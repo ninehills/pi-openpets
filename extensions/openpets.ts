@@ -2,6 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createOpenPetsClient, type OpenPetsClient } from "@open-pets/client";
 import { MAX_MESSAGE_LENGTH, type OpenPetsState } from "@open-pets/core";
+import { installAndActivatePet } from "@open-pets/installer";
 import { basename } from "node:path";
 
 const MAX_PROJECT_NAME = 32;
@@ -100,27 +101,64 @@ export default function openPetsPiExtension(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("openpets", {
-    description: "OpenPets Pi extension commands: status | test",
+    description: "OpenPets Pi extension commands: install | show | hide | status | test",
     handler: async (args, ctx) => {
       const rt = ensureRuntime(ctx);
-      const action = String(args ?? "status").trim().split(/\s+/)[0] || "status";
+      const parts = String(args ?? "status").trim().split(/\s+/).filter(Boolean);
+      const action = parts[0] || "status";
+      if (action === "install") {
+        await handleInstallCommand(parts.slice(1), ctx);
+        return;
+      }
+      if (action === "show" || action === "hide") {
+        const result = await rt.client.windowAction(action, { timeoutMs: 1000 }).catch((error: unknown) => error instanceof Error ? error : new Error(String(error)));
+        ctx.ui.notify(result instanceof Error ? `OpenPets ${action} failed: ${result.message}` : `OpenPets ${action === "show" ? "shown" : "hidden"}.`, result instanceof Error ? "warning" : "info");
+        return;
+      }
       if (action === "test") {
         const result = await rt.client.safeSendEvent({ state: "waving", source: rt.source, type: "pi.command.test", message: `Pi(${rt.projectName}): Hello from the Pi bridge.` });
         ctx.ui.notify(result.ok ? "OpenPets test event sent." : `OpenPets test failed: ${result.error.message}`, result.ok ? "info" : "warning");
         return;
       }
-      try {
-        const health = await rt.client.getHealth({ timeoutMs: 800 });
-        ctx.ui.notify(`OpenPets connected (${health.version ?? "unknown version"}). Source: ${rt.source}`, "info");
-      } catch (error) {
-        ctx.ui.notify(`OpenPets unavailable: ${error instanceof Error ? error.message : String(error)}`, "warning");
+      if (action === "status") {
+        try {
+          const health = await rt.client.getHealth({ timeoutMs: 800 });
+          ctx.ui.notify(`OpenPets connected (${health.version ?? "unknown version"}). Source: ${rt.source}`, "info");
+        } catch (error) {
+          ctx.ui.notify(`OpenPets unavailable: ${error instanceof Error ? error.message : String(error)}`, "warning");
+        }
+        return;
       }
+      ctx.ui.notify(`Unknown /openpets command: ${action}. Use install, show, hide, status, or test.`, "warning");
     },
   });
 
   function ensureRuntime(ctx: ExtensionContext) {
     runtime ??= createRuntime(ctx);
     return runtime;
+  }
+}
+
+async function handleInstallCommand(args: string[], ctx: ExtensionContext) {
+  const source = args.join(" ").trim();
+  if (!source) {
+    ctx.ui.notify("Usage: /openpets install <zip-url|local-zip|pet-folder>", "warning");
+    return;
+  }
+
+  ctx.ui.notify("Installing OpenPets pet...", "info");
+  const result = await installAndActivatePet(source);
+  if (!result.ok) {
+    ctx.ui.notify(`OpenPets install failed: ${result.message}`, "warning");
+    return;
+  }
+
+  if (result.activated) {
+    ctx.ui.notify(`Installed and activated ${result.activationDisplayName ?? result.displayName}.`, "info");
+  } else if (result.openPetsRunning) {
+    ctx.ui.notify(`Installed ${result.displayName}. Restart OpenPets to use it.`, "info");
+  } else {
+    ctx.ui.notify(`Installed ${result.displayName}. Open OpenPets to use it.`, "info");
   }
 }
 
