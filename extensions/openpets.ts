@@ -96,8 +96,8 @@ export default function openPetsPiExtension(pi: ExtensionAPI) {
     ensureRuntime(ctx);
     if (!runtime) return;
     clearTimers(runtime);
-    await runtime.client.leaseRelease(runtime.leaseId, { timeoutMs: 500 }).catch(() => undefined);
     await runtime.client.safeSendEvent({ state: "sleeping", source: runtime.source, type: "pi.session.shutdown", message: `Pi(${runtime.projectName}): Logging off.` });
+    await runtime.client.leaseRelease(runtime.leaseId, { timeoutMs: 500 }).catch(() => undefined);
   });
 
   pi.registerCommand("openpets", {
@@ -165,18 +165,19 @@ async function handleInstallCommand(args: string[], ctx: ExtensionContext) {
 function createRuntime(ctx: ExtensionContext): Runtime {
   const projectName = sanitizeProjectName(basename(ctx.cwd || process.cwd()));
   const sessionId = sanitizeId(ctx.sessionManager.getSessionId?.() ?? ctx.sessionManager.getSessionFile?.() ?? `${Date.now()}`);
+  const leaseId = `pi:${projectName}:${sessionId.slice(0, 48)}`;
   return {
     client: createOpenPetsClient({ timeoutMs: 500 }),
     projectName,
-    source: `pi:${projectName}`,
-    leaseId: `pi:${projectName}:${sessionId.slice(0, 48)}`,
+    source: leaseId,
+    leaseId,
     lastSentAt: 0,
     lastContentAt: 0,
   };
 }
 
 async function acquireLease(rt: Runtime) {
-  await rt.client.leaseAcquire({ id: rt.leaseId, client: "cli", label: `Pi Agent · ${rt.projectName}`, ttlMs: LEASE_TTL_MS, autoClose: false }, { timeoutMs: 800 });
+  await rt.client.leaseAcquire({ id: rt.leaseId, client: "cli", label: `Pi Agent - ${rt.projectName}`, ttlMs: LEASE_TTL_MS, autoClose: false }, { timeoutMs: 800 });
   rt.heartbeat = setInterval(() => {
     rt.client.leaseHeartbeat({ id: rt.leaseId, ttlMs: LEASE_TTL_MS }, { timeoutMs: 500 }).catch(() => undefined);
   }, HEARTBEAT_MS);
